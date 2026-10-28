@@ -17,9 +17,10 @@ NAI-Core modela el comportamiento lógico de un núcleo de sistema operativo sin
 |---|---|---|
 | Gestión de procesos | PCB (PID, estado, tamaño, ráfaga total y restante) y TCB (contador de programa y registros) | `kernel/pcb.py` |
 | Gestión de memoria | RAM de 100 MB con **paginación simple** (25 marcos de 4 MB) y rechazo por *Out of Memory* | `kernel/memoria.py` |
-| Planificación | Round Robin con quantum fijo **q = 3** y cambio de contexto simulado | `kernel/planificador.py` *(en desarrollo)* |
-| Concurrencia | Semáforo binario con `wait()` / `signal()` sobre una sección crítica compartida | `kernel/sincronizacion.py` *(en desarrollo)* |
-| Interbloqueo | Recursos R1 y R2, espera circular forzada, detección y aborto de un proceso | `kernel/interbloqueo.py` *(en desarrollo)* |
+| Planificación | Round Robin con quantum fijo **q = 3**, cambio de contexto simulado, diagrama de Gantt y métricas (CT, TAT, WT, % CPU) | `kernel/planificador.py` |
+| Concurrencia | Semáforo binario con `wait()` / `signal()` y cola de espera sobre un marcador global de XP compartido; demostración de condición de carrera sin y con semáforo | `kernel/sincronizacion.py` |
+| Interbloqueo | Recursos R1 y R2, espera circular forzada, detección del ciclo en el grafo de espera y aborto de un proceso | `kernel/interbloqueo.py` |
+| Terminación | Kill de cualquier proceso: libera memoria, semáforo y recursos, y despierta a quien los esperaba | `kernel/nucleo.py` |
 | Bitácora | Registro de eventos del kernel exportable a `.txt` | `kernel/bitacora.py` |
 
 ## Requisitos
@@ -60,10 +61,11 @@ python main.py
 Menú principal:
 
 ```
-[1] Crear proceso                    [5] Concurrencia: semáforo binario
-[2] Tabla de procesos (PCB / TCB)    [6] Interbloqueo (deadlock)
-[3] Mapa de memoria (paginación)     [7] Prueba de estrés
-[4] Planificador Round Robin         [8] Bitácora del kernel
+[1] Crear proceso                    [6] Concurrencia: semáforo binario
+[2] Terminar proceso (kill)          [7] Interbloqueo (deadlock)
+[3] Tabla de procesos (PCB / TCB)    [8] Prueba de estrés
+[4] Mapa de memoria (paginación)     [9] Bitácora del kernel
+[5] Planificador Round Robin         [10] Reiniciar sistema
                                      [0] Salir
 ```
 
@@ -77,6 +79,7 @@ Todos los parámetros del sistema están en `config.py`. El simulador se ejecuta
 | `TAMANO_MARCO_MB` | 4 | Tamaño de marco / página |
 | `TOTAL_MARCOS` | 25 | Marcos disponibles |
 | `QUANTUM` | 3 | Unidades de tiempo por turno (Round Robin) |
+| `INCREMENTO_SECCION_CRITICA` | 10 | XP que suma cada proceso al marcador compartido |
 
 ## Estructura del proyecto
 
@@ -88,6 +91,9 @@ NAI-Core/
 │   ├── nucleo.py           Kernel: tabla de procesos, reloj y llamadas al sistema
 │   ├── pcb.py              PCB, TCB y estados del proceso
 │   ├── memoria.py          Paginación simple y Out of Memory
+│   ├── planificador.py     Round Robin, Gantt y métricas
+│   ├── sincronizacion.py   Semáforo binario y demo de condición de carrera
+│   ├── interbloqueo.py     Recursos R1/R2, detección y resolución de deadlock
 │   └── bitacora.py         Registro de eventos
 ├── interfaz/               Capa de presentación
 │   ├── menu.py             Menú interactivo
@@ -100,6 +106,8 @@ NAI-Core/
 ```bash
 python -m unittest discover -s tests -t .
 ```
+
+Las 30 pruebas cubren memoria, validaciones, Round Robin, kill, semáforo y deadlock. La prueba `test_coincide_con_calculo_manual_tarea_12` verifica que el planificador reproduce el cálculo manual de Round Robin (q = 3; ráfagas 8, 4 y 2 → CT = 14, 12, 8 y WT = 6, 8, 6).
 
 ## Declaración de autoría
 

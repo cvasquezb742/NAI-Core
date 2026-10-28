@@ -23,6 +23,15 @@ TOTAL_MARCOS = RAM_TOTAL_MB // TAMANO_MARCO_MB   # 100 / 4 = 25 marcos
 # --- Planificación de procesos -----------------------------------------------
 QUANTUM = 3                 # Unidades de tiempo por turno en Round Robin (q = 3)
 
+ANIMACION_SEGUNDOS = 0.35   # Pausa entre pasos al mostrar simulaciones en pantalla
+
+# --- Concurrencia (sección crítica) ------------------------------------------
+# Escenario propio de NAI-Core: varios procesos de un servidor de juego suman
+# experiencia (XP) a un marcador global compartido.
+VARIABLE_GLOBAL_NOMBRE = "Marcador global de XP"
+INCREMENTO_SECCION_CRITICA = 10   # XP que suma cada proceso al entrar
+PROCESOS_DEMO = 3                 # Procesos usados en la demo de carrera
+
 # --- Límites de validación de entradas ---------------------------------------
 # El tamaño máximo aceptado como "número válido" es mayor que la RAM a propósito:
 # así un proceso de, por ejemplo, 150 MB llega al administrador de memoria y es

@@ -66,6 +66,7 @@ class PCB:
     tabla_paginas: list = field(default_factory=list)  # página i -> marco
     tiempo_finalizacion: int | None = None
     cambios_contexto: int = 0
+    abortado: bool = False       # True si terminó por kill o para romper un deadlock
     tcb: TCB = field(init=False)
 
     def __post_init__(self) -> None:
