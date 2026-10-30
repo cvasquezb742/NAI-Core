@@ -28,6 +28,9 @@ def validar_entero(texto: str, campo: str, minimo: int, maximo: int) -> int:
     valor = texto.strip()
     if not valor:
         raise ErrorValidacion(f"{campo} no puede estar vacío.")
+    # Se revisa el texto con un patrón ANTES de convertirlo con int(). Así
+    # se puede decir exactamente qué estuvo mal (decimales, letras...) en vez
+    # de dejar que el programa se caiga con un error de Python.
     if not _PATRON_ENTERO.fullmatch(valor):
         if _PATRON_DECIMAL.fullmatch(valor):
             raise ErrorValidacion(f"{campo} debe ser un número entero, sin decimales.")

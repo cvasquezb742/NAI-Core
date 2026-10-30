@@ -37,6 +37,9 @@ class SemaforoBinario:
             raise ErrorSemaforo(f"PID {pid} ya está dentro de la sección crítica.")
         if pid in self.cola_espera:
             raise ErrorSemaforo(f"PID {pid} ya está en la cola de espera del semáforo.")
+        # Revisar S y cambiarlo debe ser UNA sola operación (atómica); si no,
+        # dos procesos podrían ver S = 1 al mismo tiempo y entrar los dos.
+        # En el simulador se cumple porque el kernel ejecuta una operación a la vez.
         if self.valor == 1:
             self.valor = 0
             self.dueno = pid
@@ -50,7 +53,9 @@ class SemaforoBinario:
             raise ErrorSemaforo(
                 f"PID {pid} no puede hacer signal(): no está dentro de la sección crítica.")
         if self.cola_espera:
-            # El paso se entrega directamente al siguiente; S se mantiene en 0.
+            # El paso se entrega directamente al primero de la cola (FIFO) y S
+            # se mantiene en 0. Si se pusiera S = 1, un proceso recién llegado
+            # podría colarse y el que esperaba sufriría inanición.
             self.dueno = self.cola_espera.popleft()
             return self.dueno
         self.valor = 1
@@ -93,6 +98,8 @@ class AdministradorConcurrencia:
         else:
             self.kernel.log("SYNC", f"wait(): sección crítica ocupada por PID "
                                     f"{self.semaforo.dueno}. PID {pid} a la cola de espera.")
+            # El proceso se BLOQUEA y sale de la cola de listos: así no gasta
+            # turnos de CPU preguntando si ya puede entrar (sin espera activa).
             self.kernel.bloquear(pid, "esperando el semáforo")
         return entro
 
@@ -163,6 +170,9 @@ class AdministradorConcurrencia:
                 else:
                     registrar(pid, "wait()", "Ocupada: BLOQUEADO en la cola de espera")
                     continue   # No vuelve a la fila de turnos hasta que lo despierten
+            # LEER, SUMAR y ESCRIBIR forman la sección crítica. La carrera
+            # ocurre cuando otro proceso LEE entre el LEER y el ESCRIBIR de
+            # este: trabaja con un valor viejo y al escribir borra la suma ajena.
             elif instruccion == "leer":
                 local[pid] = self.variable_global
                 registrar(pid, "LEER", f"Copia el marcador ({local[pid]}) a su registro")

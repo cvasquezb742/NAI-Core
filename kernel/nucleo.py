@@ -60,6 +60,9 @@ class Kernel:
         3. Si hay espacio, se crea el PCB, pasa de NUEVO a LISTO y entra al
            final de la cola de listos del planificador.
         """
+        # Primero se reserva la memoria y DESPUÉS se crea el PCB. Si no hay
+        # espacio, el proceso se rechaza de inmediato y no queda nada a medias
+        # en la tabla de procesos (así lo pide el enunciado: rechazo inmediato).
         pid = self._siguiente_pid
         try:
             tabla_paginas = self.memoria.asignar(pid, tamano_mb)
@@ -67,7 +70,8 @@ class Kernel:
             self.log("ERROR", f"Proceso '{nombre}' rechazado. {error}")
             raise
 
-        # El PID solo se consume si el proceso fue aceptado.
+        # El PID solo avanza si el proceso fue aceptado; así un rechazo por
+        # memoria no deja huecos en la numeración (1, 2, 3...).
         self._siguiente_pid += 1
         pcb = PCB(pid=pid, nombre=nombre, tamano_mb=tamano_mb,
                   rafaga_total=rafaga, tiempo_llegada=self.reloj,
@@ -76,6 +80,8 @@ class Kernel:
         n = len(tabla_paginas)
         self.log("MEMORIA", f"PID {pid}: {n} página{'s' if n != 1 else ''} -> "
                             f"marco{'s' if n != 1 else ''} {tabla_paginas}.")
+        # Con su memoria asignada, el proceso ya puede competir por la CPU:
+        # pasa de NUEVO a LISTO y se forma al final de la cola (orden de llegada).
         pcb.estado = Estado.LISTO
         self.planificador.encolar(pid)
         self.log("PROCESO", f"PID {pid} '{nombre}' creado ({tamano_mb} MB, ráfaga {rafaga}). "
@@ -93,6 +99,8 @@ class Kernel:
     def desbloquear(self, pid: int, motivo: str) -> None:
         """BLOQUEADO -> LISTO: el proceso vuelve al final de la cola de listos."""
         pcb = self.procesos[pid]
+        # Un proceso que ya terminó no puede regresar a la cola de listos,
+        # aunque otra parte del kernel intente despertarlo.
         if pcb.estado == Estado.TERMINADO:
             return
         pcb.estado = Estado.LISTO
@@ -108,9 +116,17 @@ class Kernel:
         Es lo mismo que hace "Finalizar tarea" en el Administrador de tareas.
         """
         pcb = self.procesos[pid]
+        # El estado cambia ANTES de liberar nada. Si al soltar un recurso se
+        # despierta a otro proceso, nadie intentará devolver a la cola a este
+        # proceso que está terminando.
         pcb.estado = Estado.TERMINADO
         pcb.abortado = abortado
         pcb.tiempo_finalizacion = self.reloj
+
+        # Se libera todo lo que tenía: su turno de CPU, el semáforo, los
+        # recursos R1/R2 y al final su memoria. Cada liberación puede
+        # desbloquear a otro proceso que estaba esperando eso mismo; por eso
+        # un kill o el aborto de un deadlock "destraban" al resto del sistema.
         self.planificador.retirar(pid)
         despertado = self.concurrencia.liberar_proceso(pid)
         recursos = self.recursos.liberar_proceso(pid)

@@ -42,6 +42,9 @@ class TCB:
 
     def guardar_contexto(self, unidades_ejecutadas: int) -> None:
         """Simula el guardado de registros al salir de la CPU."""
+        # Esto es lo que hace el SO en un cambio de contexto: copia el estado
+        # de la CPU (PC y registros) al TCB. Cuando el hilo vuelva a tener su
+        # turno, continúa exactamente desde donde se quedó.
         self.contador_programa = unidades_ejecutadas
         self.registros["ACC"] = unidades_ejecutadas * self.pid   # acumulador
         self.registros["SP"] = 0xFF - unidades_ejecutadas        # puntero de pila
@@ -88,6 +91,9 @@ class PCB:
         Consume hasta `unidades` de ráfaga y devuelve cuántas se usaron
         realmente (puede ser menos si el proceso termina antes del quantum).
         """
+        # Se usa el mínimo entre el quantum y lo que le falta: si al proceso
+        # le quedan 2 unidades y el quantum es 3, solo ocupa 2 y suelta la CPU
+        # antes. Así nunca se "gasta" CPU de más.
         usadas = min(unidades, self.rafaga_restante)
         self.rafaga_restante -= usadas
         return usadas

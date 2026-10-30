@@ -85,6 +85,9 @@ class PlanificadorRR:
         if not self.cola_listos:
             return None
         k = self.kernel
+        # Siempre se atiende al que está al frente de la cola (FIFO). Esto,
+        # junto con regresar al final después de cada turno, es lo que hace
+        # justo a Round Robin: nadie se salta la fila ni acapara la CPU.
         pid = self.cola_listos.popleft()
         pcb = k.procesos[pid]
 
@@ -94,6 +97,9 @@ class PlanificadorRR:
         k.log("CPU", f"Despachador: PID {pid} '{pcb.nombre}' entra a la CPU "
                      f"(ráfaga restante {pcb.rafaga_restante}).")
 
+        # El reloj avanza lo que realmente se usó la CPU (no siempre el
+        # quantum completo). Con ese reloj se calculan después CT, TAT y WT.
+        # Cada turno queda guardado como un bloque del diagrama de Gantt.
         usadas = pcb.ejecutar(self.quantum)
         k.reloj += usadas
         segmento = Segmento(pid, pcb.nombre, inicio, k.reloj,
@@ -116,6 +122,9 @@ class PlanificadorRR:
     # --- Métricas ------------------------------------------------------------
     def metricas(self) -> Metricas:
         """Calcula CT, TAT y WT de los procesos que completaron su ráfaga."""
+        # Solo cuentan los procesos que terminaron su ráfaga. Los abortados
+        # (kill o deadlock) no tienen un tiempo de finalización real y
+        # alterarían los promedios.
         terminados = [p for p in self.kernel.procesos.values()
                       if p.estado == Estado.TERMINADO and not p.abortado]
         filas = []
@@ -123,6 +132,8 @@ class PlanificadorRR:
             retorno = p.tiempo_finalizacion - p.tiempo_llegada
             filas.append(FilaMetrica(p.pid, p.nombre, p.tiempo_llegada, p.rafaga_total,
                                      p.tiempo_finalizacion, retorno, retorno - p.rafaga_total))
+        # Utilización = tiempo que la CPU estuvo ocupada / tiempo total.
+        # Productividad = procesos terminados / tiempo total (igual que en clase).
         tiempo_total = self.kernel.reloj
         ocupado = sum(s.duracion for s in self.historial)
         return Metricas(
