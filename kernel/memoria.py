@@ -46,6 +46,9 @@ class AdministradorMemoria:
     # --- Consultas -----------------------------------------------------------
     def marcos_necesarios(self, tamano_mb: int) -> int:
         """Páginas que ocupa un proceso: se redondea hacia arriba."""
+        # Hacia arriba porque una página no se puede partir: 10 MB necesitan
+        # 3 marcos (12 MB). Los 2 MB que sobran en la última página son la
+        # fragmentación interna.
         return math.ceil(tamano_mb / self.tamano_marco_mb)
 
     def marcos_libres(self) -> int:
@@ -77,12 +80,17 @@ class AdministradorMemoria:
         (lista donde el índice es la página y el valor es el marco físico).
         Lanza MemoriaInsuficienteError si no hay espacio.
         """
+        # Se valida ANTES de tocar la tabla de marcos: o el proceso entra
+        # completo o no entra. Nunca queda con solo una parte de sus páginas.
         requeridos = self.marcos_necesarios(tamano_mb)
         libres = self.marcos_libres()
         if requeridos > libres:
             raise MemoriaInsuficienteError(tamano_mb, requeridos, libres,
                                            self.tamano_marco_mb)
 
+        # Se toma cualquier marco libre recorriendo la RAM en orden. Como es
+        # paginación, no importa que los marcos queden separados: la tabla de
+        # páginas recuerda en qué marco quedó cada página del proceso.
         tabla_paginas = []
         for marco, dueno in enumerate(self.marcos):
             if dueno is None:
@@ -95,6 +103,8 @@ class AdministradorMemoria:
 
     def liberar(self, pid: int) -> int:
         """Libera todos los marcos de un proceso y devuelve cuántos liberó."""
+        # Basta con marcar como libres los marcos de este PID. No hace falta
+        # compactar la memoria: con paginación no hay fragmentación externa.
         liberados = 0
         for marco, dueno in enumerate(self.marcos):
             if dueno == pid:

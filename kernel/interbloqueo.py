@@ -51,6 +51,9 @@ class AdministradorRecursos:
             raise ErrorRecurso(f"PID {pid} ya retiene {rid}.")
         if pid in self.esperando:
             raise ErrorRecurso(f"PID {pid} ya está esperando {self.esperando[pid]}.")
+        # Los recursos son no apropiativos: si está ocupado, NO se le quita
+        # al dueño. El que pide queda BLOQUEADO esperando mientras conserva lo
+        # que ya tenía ("retención y espera", una condición de Coffman).
         if recurso.dueno is None:
             recurso.dueno = pid
             self.kernel.log("DEADLOCK", f"PID {pid} solicita {rid}: asignado.")
@@ -76,7 +79,9 @@ class AdministradorRecursos:
         return cambios
 
     def _entregar_al_siguiente(self, recurso: Recurso) -> int | None:
-        for pid, rid in list(self.esperando.items()):   # Orden FIFO
+        # El recurso liberado se entrega al primero que lo pidió (FIFO) y ese
+        # proceso se desbloquea; así nadie se queda esperando para siempre.
+        for pid, rid in list(self.esperando.items()):
             if rid == recurso.nombre:
                 del self.esperando[pid]
                 recurso.dueno = pid
@@ -111,6 +116,8 @@ class AdministradorRecursos:
             while actual is not None and actual not in camino:
                 camino.append(actual)
                 actual = grafo.get(actual)
+            # Si el recorrido vuelve a un proceso del camino, se cerró un
+            # ciclo: cada uno espera al siguiente y ninguno puede avanzar.
             if actual is not None:
                 return camino[camino.index(actual):]
         return []
@@ -130,8 +137,14 @@ class AdministradorRecursos:
         try:
             b = k.crear_proceso("Proceso_B", 8, 6)
         except Exception:
+            # Si B no cabe en memoria se deshace la creación de A, para no
+            # dejar un proceso suelto que nunca participará en el deadlock.
             k.terminar_proceso(a.pid, "no hubo memoria para Proceso_B", abortado=True)
             raise
+        # El orden importa: primero cada uno toma UN recurso y después pide el
+        # del otro. Si A pidiera R1 y R2 seguidos antes que B, no habría ciclo.
+        # Pedir siempre los recursos en el mismo orden (R1 antes que R2) es,
+        # justamente, la forma de prevenir este interbloqueo.
         k.log("DEADLOCK", "Forzando espera circular entre Proceso_A y Proceso_B.")
         self.solicitar(a.pid, "R1")
         self.solicitar(b.pid, "R2")

@@ -29,6 +29,8 @@ class Bitacora:
         self.eventos: list[Evento] = []
 
     def registrar(self, tipo: str, mensaje: str, reloj: int = 0) -> None:
+        # Se guardan dos tiempos: la hora real (cuándo ocurrió en la demo) y
+        # el reloj simulado del kernel (en qué unidad de tiempo del sistema).
         hora = datetime.now().strftime("%H:%M:%S")
         self.eventos.append(Evento(hora, reloj, tipo, mensaje))
 

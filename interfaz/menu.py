@@ -92,6 +92,9 @@ def pedir(etiqueta: str, validador):
     Pide un dato hasta que sea válido. Si el usuario deja el campo vacío,
     devuelve None para cancelar la operación.
     """
+    # Se repite hasta recibir un dato válido: un error de escritura nunca
+    # cierra el programa, solo se muestra el mensaje y se vuelve a preguntar.
+    # Esto es lo que protege al simulador en la prueba de estrés en vivo.
     while True:
         texto = consola.input(f"  [cyan]›[/] {etiqueta}: ")
         if not texto.strip():
@@ -160,6 +163,8 @@ def encabezado(kernel: Kernel) -> Panel:
         Text(""),
         Align.center(estado),
     ]
+    # El encabezado revisa si hay deadlock cada vez que se dibuja el menú:
+    # mientras el ciclo exista, la alerta sigue visible en todas partes.
     ciclo = kernel.recursos.detectar()
     if ciclo:
         partes.append(Align.center(Text(
@@ -401,6 +406,9 @@ def linea_segmento(segmento) -> Text:
 
 def diagrama_gantt(segmentos, ancho_max: int) -> Group:
     """Dibuja el diagrama de Gantt en filas que caben en la pantalla."""
+    # Cada bloque mide 3 caracteres por unidad de tiempo (mínimo 5 para que
+    # quepa la etiqueta). Si el diagrama no cabe a lo ancho, se parte en
+    # varias filas en lugar de cortarse en el borde de la terminal.
     filas = []
     actual = []
     ancho = 1
@@ -788,6 +796,9 @@ def pantalla_reiniciar(kernel: Kernel) -> None:
 
 # --- Bucle principal ----------------------------------------------------------------
 def ejecutar() -> None:
+    # Se crea un solo kernel para toda la sesión y cada opción del menú
+    # recibe ese mismo kernel. El diccionario conecta el número que escribe
+    # el usuario con la pantalla que debe abrirse.
     kernel = Kernel()
     acciones = {
         "1": pantalla_crear_proceso,
