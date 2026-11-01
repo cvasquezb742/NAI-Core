@@ -109,6 +109,10 @@ python -m unittest discover -s tests -t .
 
 Las 30 pruebas cubren memoria, validaciones, Round Robin, kill, semáforo y deadlock. La prueba `test_coincide_con_calculo_manual_tarea_12` verifica que el planificador reproduce el cálculo manual de Round Robin (q = 3; ráfagas 8, 4 y 2 → CT = 14, 12, 8 y WT = 6, 8, 6).
 
+## Herramientas utilizadas
+
+El desarrollo contó con el apoyo de Claude (Anthropic) como asistente de programación.
+
 ## Declaración de autoría
 
 Este proyecto fue desarrollado por Christofer Josue Vasquez Baltazar como trabajo final del curso Sistemas Operativos I.
