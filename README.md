@@ -5,7 +5,7 @@
 Proyecto final del curso **Sistemas Operativos I**, Universidad Mariano Gálvez de Guatemala.
 
 - **Autor:** Christofer Josue Vasquez Baltazar
-- **Video demostrativo:** _(enlace de YouTube pendiente)_
+- **Video demostrativo:** https://youtu.be/8N_kzbcCNJY 
 
 ---
 
